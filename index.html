@@ -106,6 +106,18 @@ table.st{width:100%;border-collapse:collapse;font-size:1.75rem}
 .fs:hover{opacity:1;color:var(--text)}
 :fullscreen .fs{display:none}
 body.isfs .fs{display:none}
+/* Lyst tema på storskærm */
+body.display.light{--bg:#fff8f0;--panel:rgba(255,255,255,.9);--panel2:rgba(255,238,247,.95);--line:rgba(60,30,110,.14);--text:#22113d;--muted:#6b5b8c;--gold:#c47a00;--live:#e0244a;--red:#e0244a;--green:#0f9e70;--pink:#e63d8a;--cyan:#0aa5c2;background:radial-gradient(1200px 700px at 8% -10%,rgba(255,95,162,.2),transparent 60%),radial-gradient(1000px 700px at 108% 5%,rgba(56,217,240,.18),transparent 60%),radial-gradient(900px 600px at 50% 115%,rgba(255,207,74,.25),transparent 60%),var(--bg)}
+body.light .t{box-shadow:0 1rem 2.5rem rgba(80,40,120,.14)}
+body.light .gold{background-image:linear-gradient(90deg,#d97706,#f59e0b,#b45309,#d97706)}
+body.light .ticker{background:linear-gradient(90deg,rgba(255,95,162,.18),rgba(255,255,255,.85) 30%,rgba(255,255,255,.85) 70%,rgba(56,217,240,.18));border-color:rgba(196,122,0,.4)}
+body.light .pm{background:rgba(60,30,110,.04)}
+body.light .pm.done{color:#5a4d75}
+body.light .champ{background:linear-gradient(90deg,#ffe8a3,#fff4cc,#ffe8a3)}
+body.light .bunting::before{background:rgba(60,30,110,.25)}
+.theme{background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:.6rem;padding:.35rem .9rem;font-weight:700;font-size:1rem;opacity:.6;transition:opacity .2s}
+.theme:hover{opacity:1;color:var(--text)}
+body.light .fs{border-color:var(--line)}
 
 /* ---------- INDTASTNING ---------- */
 body.admin{font-size:16px}
@@ -236,16 +248,18 @@ const setList = c => c.sets.map(([a,b])=>`${a}-${b}`).join(', ');
 
 /* ---------- STORSKÆRM ---------- */
 function renderDisplay(){
-  document.body.className='display';
+  document.body.className='display'+(lightTheme()?' light':'')+(document.fullscreenElement?' isfs':'');
   const app=document.getElementById('app');
   if(!document.getElementById('clock')){
     const cols=['#ffcf4a','#ff5fa2','#38d9f0','#22c993','#a77bff'];
     app.innerHTML=`<canvas id="confetti"></canvas><div class="bunting">${Array.from({length:40},(_,i)=>`<i style="background:${cols[i%5]};animation-delay:${-(i%7)*.4}s"></i>`).join('')}</div>
-      <div class="screen"><header><h1><span class="cake">🎂</span><span id="ttl" class="gold"></span><span>🎯</span></h1><div class="hdr-r"><button class="fs" onclick="toggleFS()" title="Tast F for fuld skærm">⛶ Fuld skærm</button><div id="clock"></div></div></header>
+      <div class="screen"><header><h1><span class="cake">🎂</span><span id="ttl" class="gold"></span><span>🎯</span></h1><div class="hdr-r"><button class="theme" id="themeBtn" onclick="toggleTheme()" title="Tast L for lys/mørk"></button><button class="fs" onclick="toggleFS()" title="Tast F for fuld skærm">⛶ Fuld skærm</button><div id="clock"></div></div></header>
       <div class="cols"><section class="t men" id="d-men"></section><section class="t women" id="d-women"></section></div>
       <div class="ticker"><div class="track" id="ticker"></div></div></div>
       <div id="o180"><div class="big" id="o180big">180</div><div class="t1" id="o180t1">ONE HUNDRED AND EIGHTY!</div><div class="who" id="o180who"></div><div class="cnt" id="o180cnt"></div></div>`;
     tick(); setInterval(tick,10000); startConfetti();
+  }
+  { const tb=document.getElementById('themeBtn'); if(tb) tb.textContent=lightTheme()?'🌙 Mørk':'☀️ Lys';
   }
   document.getElementById('ttl').textContent=S.title;
   document.getElementById('d-men').innerHTML=dispT(S.men,true,'men');
@@ -327,6 +341,10 @@ function finalRow(t){
 function tick(){ const c=document.getElementById('clock'); if(c) c.textContent=new Date().toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'}); }
 document.addEventListener('fullscreenchange',()=>document.body.classList.toggle('isfs',!!document.fullscreenElement));
 document.addEventListener('keydown',e=>{ if((e.key==='f'||e.key==='F') && location.hash==='#skaerm' && !/INPUT|SELECT/.test(e.target.tagName)) toggleFS(); });
+const THEME_KEY='dart-turnering-theme';
+function lightTheme(){ try{ return localStorage.getItem(THEME_KEY)==='light'; }catch(e){ return false; } }
+function toggleTheme(){ try{ localStorage.setItem(THEME_KEY, lightTheme()?'dark':'light'); }catch(e){} renderDisplay(); }
+document.addEventListener('keydown',e=>{ if((e.key==='l'||e.key==='L') && location.hash==='#skaerm' && !/INPUT|SELECT/.test(e.target.tagName)) toggleTheme(); });
 function toggleFS(){ if(document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }
 
 /* ---------- INDTASTNING ---------- */
