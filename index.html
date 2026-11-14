@@ -68,6 +68,21 @@ body.display{font-size:clamp(11px,1.32vw,42px);height:100vh;overflow:hidden}
 #o180.morten .big{font-size:17rem;background:linear-gradient(180deg,#ffffff,#38d9f0 50%,#ff5fa2);-webkit-background-clip:text;background-clip:text}
 #o180 .t1{font-family:'Barlow Condensed',system-ui,sans-serif;font-size:4.2rem;font-weight:800;letter-spacing:.12em;color:#fff}
 #o180 .who{font-family:'Barlow Condensed',system-ui,sans-serif;font-size:5.5rem;font-weight:800;color:var(--gold)}
+#o180 .dance{display:none;gap:2.5rem;font-size:7rem}
+#o180 .dance span{display:inline-block;animation:dance .5s ease-in-out infinite alternate}
+#o180 .dance span:nth-child(2n){animation-delay:.25s}
+#o180 .disco{display:none;font-size:6rem;animation:spin 3s linear infinite}
+#o180.annette{background:conic-gradient(from 0deg at 50% 45%,rgba(255,95,162,.55),rgba(167,123,255,.55),rgba(56,217,240,.55),rgba(255,207,74,.55),rgba(255,95,162,.55)),#160c2c;animation:hue 2s linear infinite}
+#o180.annette::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,transparent 25%,rgba(15,10,34,.85) 75%);z-index:-1}
+#o180.annette .big{font-size:16rem;background:linear-gradient(180deg,#fff,#ff5fa2 55%,#a77bff);-webkit-background-clip:text;background-clip:text}
+#o180.annette.show .big{animation:pop .7s cubic-bezier(.2,1.7,.4,1),groove .6s .7s ease-in-out infinite alternate}
+#o180.annette .t1{font-size:5rem;color:#fff;text-shadow:0 0 2rem #ff5fa2}
+#o180.annette .dance,#o180.annette .disco{display:flex}
+#o180.annette .who{font-size:3.6rem;color:#fff3c4}
+@keyframes dance{0%{transform:translateY(0) rotate(-15deg)}100%{transform:translateY(-2.5rem) rotate(15deg) scale(1.15)}}
+@keyframes groove{0%{transform:rotate(-4deg) scale(1)}100%{transform:rotate(4deg) scale(1.06)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes hue{to{filter:hue-rotate(360deg)}}
 #o180 .cnt{font-size:1.9rem;color:#ffd9e2;font-weight:600}
 @keyframes pop{0%{transform:scale(0) rotate(-12deg)}100%{transform:scale(1) rotate(0)}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-1.2rem)}75%{transform:translateX(1.2rem)}}
@@ -77,6 +92,7 @@ body.display{font-size:clamp(11px,1.32vw,42px);height:100vh;overflow:hidden}
 .row180{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .b180 .btn180.mor{background:linear-gradient(180deg,#38d9f0,#ff5fa2);color:#fff}
 .b180 .btn180{background:linear-gradient(180deg,#ffcf4a,#ff9f43);color:#2a1a00;border:0;border-radius:10px;padding:10px 16px;font-weight:800;font-size:16px}
+.b180 .btn180.ann{background:linear-gradient(90deg,#ff5fa2,#a77bff,#38d9f0);color:#fff}
 .b180 .btn180 small{font-weight:700;opacity:.7}
 .b180 .sep{width:1px;height:28px;background:var(--line);margin:0 4px}
 .champ{text-align:center;font-size:3rem!important;padding:1rem!important;box-shadow:0 0 2.5rem rgba(255,207,74,.35);animation:glow 2s ease-in-out infinite;background:linear-gradient(90deg,#5a3a00,#7a4f00,#5a3a00);border-left:.4rem solid var(--gold);border-radius:.8rem;padding:.8rem 1rem;font-family:'Barlow Condensed';font-size:2.3rem;font-weight:800}
@@ -256,7 +272,7 @@ function renderDisplay(){
       <div class="screen"><header><h1><span class="cake">🎂</span><span id="ttl" class="gold"></span><span>🎯</span></h1><div class="hdr-r"><button class="theme" id="themeBtn" onclick="toggleTheme()" title="Tast L for lys/mørk"></button><button class="fs" onclick="toggleFS()" title="Tast F for fuld skærm">⛶ Fuld skærm</button><div id="clock"></div></div></header>
       <div class="cols"><section class="t men" id="d-men"></section><section class="t women" id="d-women"></section></div>
       <div class="ticker"><div class="track" id="ticker"></div></div></div>
-      <div id="o180"><div class="big" id="o180big">180</div><div class="t1" id="o180t1">ONE HUNDRED AND EIGHTY!</div><div class="who" id="o180who"></div><div class="cnt" id="o180cnt"></div></div>`;
+      <div id="o180"><div class="disco">🪩</div><div class="big" id="o180big">180</div><div class="t1" id="o180t1">ONE HUNDRED AND EIGHTY!</div><div class="who" id="o180who"></div><div class="cnt" id="o180cnt"></div><div class="dance"><span>💃</span><span>🕺</span><span>💃</span><span>🎶</span><span>💃</span><span>🕺</span><span>💃</span></div></div>`;
     tick(); setInterval(tick,10000); startConfetti();
   }
   { const tb=document.getElementById('themeBtn'); if(tb) tb.textContent=lightTheme()?'🌙 Mørk':'☀️ Lys';
@@ -282,7 +298,19 @@ function renderDisplay(){
 let seen180=null, hide180=null;
 function show180(e){
   const o=document.getElementById('o180');
-  const M=e.type==='morten';
+  const M=e.type==='morten', A=e.type==='annette';
+  if(A){
+    document.getElementById('o180big').textContent='ANNETTE';
+    document.getElementById('o180t1').textContent='💖 VERDENS BEDSTE VEN 💖';
+    document.getElementById('o180who').textContent='Annette er den bedste ven i hele verden!';
+    document.getElementById('o180cnt').textContent='';
+    o.classList.remove('show','morten'); void o.offsetWidth; o.classList.add('annette','show');
+    const cv=document.getElementById('confetti'); cv.style.zIndex=11;
+    burst(500); [1500,3000,4500,6000,7500].forEach(t=>setTimeout(()=>burst(300),t));
+    clearTimeout(hide180); hide180=setTimeout(()=>{ o.classList.remove('show'); setTimeout(()=>{ o.classList.remove('annette'); cv.style.zIndex=0; },400); },10000);
+    return;
+  }
+  o.classList.remove('annette');
   document.getElementById('o180big').textContent=M?'MORTEN':'180';
   document.getElementById('o180t1').textContent=M?'DET ER EN MORTEN!':'ONE HUNDRED AND EIGHTY!';
   document.getElementById('o180who').textContent=(M?'😂 ':'🎯 ')+e.name+(M?' 😂':' 🎯');
@@ -403,9 +431,11 @@ function admin180(){
   const btns=(k,t)=>S[k].players.map((p,i)=>{ const n=count180(k,i,t); return `<button class="btn180 ${t==='morten'?'mor':''}" onclick="fire180('${k}',${i},'${t}')">${t==='morten'?'MORTEN':'180'} · ${esc(p)}${n&&t!=='morten'?` <small>(${n})</small>`:''}</button>`; }).join('');
   const last=S.log180.at(-1);
   return `<div class="row180">${btns('men','180')}</div>
-    <div class="row180">${btns('men','morten')}</div>`
+    <div class="row180">${btns('men','morten')}</div>
+    <div class="row180"><button class="btn180 ann" onclick="fireAnnette()">💃 Annette-show</button></div>`
     +(last?`<div class="row180"><button class="btn sm" onclick="undo180()">↺ Fortryd seneste (${typ(last)==='morten'?'MORTEN':'180'} · ${esc(S[last.k].players[last.i])})</button></div>`:'');
 }
+function fireAnnette(){ S.e180={ts:Date.now(), type:'annette', name:'Annette'}; persist(); render(); }
 function fire180(k,i,t='180'){
   S.log180.push({k,i,t});
   S.e180={ts:Date.now(), type:t, name:S[k].players[i], n:S.log180.filter(x=>typ(x)===t).length, pn:count180(k,i,t)};
