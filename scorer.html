@@ -176,10 +176,32 @@ button,.chip,.fg button,.keys button{touch-action:manipulation;-webkit-tap-highl
 #ov .t1{font-family:'Barlow Condensed',system-ui,sans-serif;font-size:min(8vw,64px);font-weight:800;letter-spacing:.08em}
 #ov .t2{font-size:22px;color:#ffd9e2;font-weight:600}
 @keyframes pop{0%{transform:scale(0) rotate(-10deg)}100%{transform:scale(1)}}
+/* Lyst tema */
+html.light{--bg:#fff8f0;--panel:rgba(255,255,255,.92);--panel2:rgba(244,236,255,.95);--line:rgba(60,30,110,.15);--text:#22113d;--muted:#6b5b8c;--red:#e0244a;--green:#0f9e70;--gold:#c47a00;--pink:#e63d8a;--cyan:#0aa5c2}
+html.light,html.light body{background:radial-gradient(1200px 700px at 8% -10%,rgba(255,95,162,.16),transparent 60%),radial-gradient(1000px 700px at 108% 5%,rgba(56,217,240,.14),transparent 60%),var(--bg);background-attachment:fixed}
+html.light .gold{background-image:linear-gradient(90deg,#d97706,#f59e0b,#b45309)}
+html.light .chip .n,html.light .disp,html.light .turnbox span,html.light .voice,html.light .fx button.miss{background:rgba(60,30,110,.06)}
+html.light .quick button{background:rgba(60,30,110,.04)}
+html.light .btn.on{color:#fff}
+html.light .keys button.ok{color:#fff}
+html.light .plink{border-bottom-color:rgba(60,30,110,.3)}
+html.light select.txt{background:#fff;color:var(--text);color-scheme:light}
+html.light .pl.act{box-shadow:0 0 0 4px rgba(196,122,0,.15),0 0 30px rgba(196,122,0,.18)}
+#themeBtn{position:fixed;left:12px;bottom:12px;z-index:25;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:20px;opacity:.75;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:opacity .2s}
+#themeBtn:hover{opacity:1}
+body{padding-bottom:60px}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<button id="themeBtn" onclick="toggleTheme()" title="Lys / mørk"></button>
+<script>
+const THEME_KEY='dart-scorer-theme';
+function isLight(){ try{ return localStorage.getItem(THEME_KEY)==='light'; }catch(e){ return false; } }
+function applyTheme(){ const l=isLight(); document.documentElement.classList.toggle('light',l); const m=document.querySelector('meta[name=theme-color]'); if(m) m.content=l?'#fff8f0':'#0f0a22'; const b=document.getElementById('themeBtn'); if(b){ b.textContent=l?'🌙':'☀️'; b.title=l?'Skift til mørkt':'Skift til lyst'; } }
+function toggleTheme(){ try{ localStorage.setItem(THEME_KEY,isLight()?'dark':'light'); }catch(e){} applyTheme(); }
+applyTheme();
+</script>
 <div class="toast" id="toast"></div>
 <div id="ov" onclick="hideOv()"><div class="big" id="ovBig"></div><div class="t1" id="ovT1"></div><div class="t2" id="ovT2"></div></div>
 <script>
@@ -571,12 +593,12 @@ function formChart(vals,fmt){
   const pts=vals.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
   return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Formkurve">
-    <line x1="${P}" x2="${W-P}" y1="${y(avg)}" y2="${y(avg)}" stroke="rgba(255,255,255,.25)" stroke-dasharray="6 6"/>
-    <text x="${W-P}" y="${y(avg)-6}" text-anchor="end" fill="#ab9fcc" font-size="14">gns. ${fmt(avg)}</text>
-    <polyline points="${pts}" fill="none" stroke="#ffcf4a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
-    ${vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="6" fill="#ffcf4a"><title>${fmt(v)}</title></circle>`).join('')}
-    <text x="${P}" y="${y(mx)-12}" fill="#f7f2ff" font-size="15" font-weight="700">${fmt(mx)}</text>
-    <text x="${P}" y="${H-8}" fill="#ab9fcc" font-size="14">ældst</text><text x="${W-P}" y="${H-8}" fill="#ab9fcc" font-size="14" text-anchor="end">nyest</text></svg>`;
+    <line x1="${P}" x2="${W-P}" y1="${y(avg)}" y2="${y(avg)}" stroke="var(--line)" stroke-dasharray="6 6"/>
+    <text x="${W-P}" y="${y(avg)-6}" text-anchor="end" fill="var(--muted)" font-size="14">gns. ${fmt(avg)}</text>
+    <polyline points="${pts}" fill="none" stroke="var(--gold)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    ${vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="6" fill="var(--gold)"><title>${fmt(v)}</title></circle>`).join('')}
+    <text x="${P}" y="${y(mx)-12}" fill="var(--text)" font-size="15" font-weight="700">${fmt(mx)}</text>
+    <text x="${P}" y="${H-8}" fill="var(--muted)" font-size="14">ældst</text><text x="${W-P}" y="${H-8}" fill="var(--muted)" font-size="14" text-anchor="end">nyest</text></svg>`;
 }
 function renderProfile(){
   const n=S.pv, f=S.sf||'x01', cr=f==='cricket';
