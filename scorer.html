@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f0a22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Dart Scorer</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -127,10 +133,41 @@ table.stt{width:100%;border-collapse:collapse;font-size:18px;white-space:nowrap}
 .stt td.pos{color:var(--muted);width:30px}
 .stt tr.lead td{color:var(--gold)}
 .hrow{display:grid;grid-template-columns:110px 120px 1fr 32px;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)}
-@media(max-width:700px){.hrow{grid-template-columns:1fr 32px}.hrow .hd,.hrow .hg{grid-column:1}}
+@media(max-width:700px){.hrow{grid-template-columns:1fr 32px;gap:2px 8px}.hrow .hd,.hrow .hg,.hrow .hr{grid-column:1}.hrow .x{grid-column:2;grid-row:1/4}}
+@media(max-width:700px){
+  .wrap{padding:10px}
+  h1{font-size:26px}
+  .top{margin-bottom:10px}.top .row .btn{padding:7px 10px;font-size:14px}
+  .board{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .pl{padding:10px 12px;border-radius:14px}
+  .pl .nm{font-size:20px}
+  .pl .rem{font-size:60px}
+  .pl .stats{gap:8px;font-size:12px;flex-wrap:wrap}
+  .pl .co{font-size:17px}
+  .pl .hist{display:none}
+  .disp{font-size:44px;min-height:60px}
+  .keys button{padding:12px 0;font-size:26px}
+  .fg button{padding:9px 0;font-size:18px}
+  .tile .tv{font-size:40px}
+  .cr th{font-size:18px}.cr td{font-size:30px}.cr td.num{font-size:24px;width:64px}.cr .pts td{font-size:34px}
+}
 .hrow .hd{color:var(--muted);font-size:14px}.hrow .hg{font-weight:700;color:var(--cyan)}
 .hrow .hr .w{color:var(--gold);font-weight:800}.hrow small{color:var(--muted)}
 .hrow .x{background:none;border:0;color:var(--muted);font-size:16px}
+.plink{cursor:pointer;color:inherit;text-decoration:none;border-bottom:1px dashed rgba(255,255,255,.3)}
+.plink:hover{color:var(--gold)}
+.tile .tv small{font-size:22px;color:var(--muted)}
+.pgrid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+@media(max-width:900px){.pgrid{grid-template-columns:1fr}}
+.chart{width:100%;height:auto;display:block}
+.h2h{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line);font-weight:700;font-size:18px}
+.h2h .rec{font-family:'Barlow Condensed',system-ui,sans-serif;font-size:26px}
+.h2h .win{color:var(--green)}.h2h .los{color:var(--red)}
+.profs{display:grid;gap:8px}
+.prow{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center}
+.prow .em{font-size:26px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:4px 0}
+select.txt{max-width:220px;background:#0f0a22;color:#f7f2ff;color-scheme:dark}
+button,.chip,.fg button,.keys button{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 /* overlay */
 #ov{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle,rgba(255,77,109,.6),rgba(15,10,34,.95) 70%);opacity:0;pointer-events:none;transition:opacity .3s;text-align:center;padding:20px}
 #ov.show{opacity:1;pointer-events:auto}
@@ -152,6 +189,10 @@ const CR=[20,19,18,17,16,15,25];
 const IMPOSSIBLE=new Set([163,166,169,172,173,175,176,178,179]);
 
 let S=load();
+const EMOJI=['🎯','🍺','🦁','🐻','🦊','🐺','🦅','🔥','⚡','👑','🎸','💃','🌵','🚢','🧅','🥦','🎧','🪩','🐙','🦄'];
+if(!Array.isArray(S.profiles)) S.profiles=[...PRESET,...(S.extra||[])].map((n,i)=>({name:n,emoji:EMOJI[i%EMOJI.length]}));
+const prof = n => S.profiles.find(p=>p.name===n);
+const emo = n => (prof(n)||{}).emoji||'🎯';
 function blank(){ return {phase:'setup', game:'501', doubleOut:true, legsToWin:1, setsToWin:1, sel:[], extra:[], G:null, H:[], voice:false, caller:true, mode:'fields'}; }
 function load(){ try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s&&s.phase) return Object.assign(blank(),s,{voice:false}); }catch(e){} return blank(); }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
@@ -383,15 +424,18 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------- Render ---------- */
-function render(){ S.phase==='stats'?renderStats():S.phase==='setup'?renderSetup():renderPlay(); }
+function render(){ S.phase==='profile'?renderProfile():S.phase==='stats'?renderStats():S.phase==='setup'?renderSetup():renderPlay(); }
 function renderSetup(){
   const all=[...PRESET,...S.extra];
   document.getElementById('app').innerHTML=`<div class="wrap"><div class="setup">
     <div style="text-align:center"><h1 class="gold" style="font-size:46px">🎯 Dart Scorer</h1><div class="muted">Sig din score – eller tast den ind</div></div>
     <div class="card"><div class="lbl">Spil</div><div class="games">${['501','301','cricket'].map(g=>`<button class="${S.game===g?'sel':''}" onclick="S.game='${g}';save();render()">${g==='cricket'?'Cricket':g}</button>`).join('')}</div></div>
-    <div class="card"><div class="lbl">Spillere (tryk i den rækkefølge de skal kaste)</div>
-      <div class="chips">${all.map(n=>{ const i=S.sel.indexOf(n); return `<button class="chip ${i>=0?'sel':''}" onclick="togglePl('${esc(n)}')">${esc(n)}${i>=0?`<span class="n">${i+1}</span>`:''}</button>`; }).join('')}</div>
-      <div class="row" style="margin-top:12px"><input class="txt" id="newp" placeholder="Tilføj spiller…" onkeydown="if(event.key==='Enter')addPl()"><button class="btn" onclick="addPl()">Tilføj</button></div></div>
+    <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><div class="lbl" style="margin:0">${S.editProf?'Profiler på denne enhed':'Spillere (tryk i den rækkefølge de skal kaste)'}</div><button class="btn" style="padding:6px 12px" onclick="S.editProf=!S.editProf;save();render()">${S.editProf?'✓ Færdig':'✏️ Profiler'}</button></div>
+      ${S.editProf ? `<div class="profs">${S.profiles.map((p,i)=>`<div class="prow"><button class="em" title="Skift emoji" onclick="cycleEmoji(${i})">${p.emoji}</button><input class="txt" value="${esc(p.name)}" onchange="renameProf(${i},this.value)"><button class="btn ghost" title="Slet profil" onclick="delProf(${i})">🗑</button></div>`).join('')}</div>`
+        : `<div class="chips">${S.profiles.map((p,i)=>{ const k=S.sel.indexOf(p.name); return `<button class="chip ${k>=0?'sel':''}" onclick="togglePl(${i})">${p.emoji} ${esc(p.name)}${k>=0?`<span class="n">${k+1}</span>`:''}</button>`; }).join('')}</div>`}
+      <div class="row" style="margin-top:12px"><input class="txt" id="newp" placeholder="Ny profil…" onkeydown="if(event.key==='Enter')addPl()"><button class="btn" onclick="addPl()">Tilføj</button></div>
+      <div class="row" style="margin-top:12px"><span class="lbl" style="margin:0">👤 Hvem bruger denne enhed?</span><select class="txt" onchange="S.me=this.value;save();render()"><option value="">– Ingen –</option>${S.profiles.map(p=>`<option ${S.me===p.name?'selected':''} value="${esc(p.name)}">${p.emoji} ${esc(p.name)}</option>`).join('')}</select>
+        ${S.me&&prof(S.me)?`<button class="btn" onclick="openProfile(S.me)">Min statistik</button>`:''}</div></div>
     <div class="card"><div class="row" style="gap:18px">
       ${S.game!=='cricket'?`<div><div class="lbl">Udgang</div><div class="row"><button class="btn ${S.doubleOut?'on':''}" onclick="S.doubleOut=true;save();render()">Double out</button><button class="btn ${!S.doubleOut?'on':''}" onclick="S.doubleOut=false;save();render()">Single out</button></div></div>`:''}
       <div><div class="lbl">Først til (sæt)</div><div class="row">${[1,2,3,4,5].map(n=>`<button class="btn ${(S.setsToWin||1)===n?'on':''}" onclick="S.setsToWin=${n};save();render()">${n}</button>`).join('')}</div></div>
@@ -402,8 +446,19 @@ function renderSetup(){
     <button class="btn" style="padding:14px;font-size:18px" onclick="S.phase='stats';save();render()">📊 Statistik${STATS.length?` · ${STATS.length} kampe`:''}</button>
   </div></div>`;
 }
-function togglePl(n){ const i=S.sel.indexOf(n); if(i>=0) S.sel.splice(i,1); else S.sel.push(n); save(); render(); }
-function addPl(){ const v=document.getElementById('newp').value.trim(); if(!v) return; if(!S.extra.includes(v)&&!PRESET.includes(v)) S.extra.push(v); if(!S.sel.includes(v)) S.sel.push(v); save(); render(); }
+function togglePl(ix){ const n=S.profiles[ix].name; const i=S.sel.indexOf(n); if(i>=0) S.sel.splice(i,1); else S.sel.push(n); save(); render(); }
+function addPl(){ const v=document.getElementById('newp').value.trim(); if(!v) return; if(!prof(v)) S.profiles.push({name:v,emoji:EMOJI[S.profiles.length%EMOJI.length]}); if(!S.editProf&&!S.sel.includes(v)) S.sel.push(v); save(); render(); }
+function cycleEmoji(i){ const p=S.profiles[i]; p.emoji=EMOJI[(EMOJI.indexOf(p.emoji)+1)%EMOJI.length]; save(); render(); }
+function renameProf(i,v){
+  v=v.trim(); const old=S.profiles[i].name; if(!v||v===old) return render();
+  if(prof(v)){ toast('Navnet findes allerede'); return render(); }
+  S.profiles[i].name=v; S.sel=S.sel.map(n=>n===old?v:n); if(S.me===old) S.me=v;
+  STATS.forEach(m=>{ if(m.winner===old) m.winner=v; m.players.forEach(r=>{ if(r.name===old) r.name=v; }); }); saveStats();
+  if(S.G){ S.G.P.forEach(p=>{ if(p.name===old) p.name=v; }); if(S.G.winner===old) S.G.winner=v; }
+  save(); render(); toast(`Omdøbt – statistikken følger med`);
+}
+function delProf(i){ const n=S.profiles[i].name; if(!confirm(`Slet profilen ${n}? Statistikken bliver liggende.`)) return; S.profiles.splice(i,1); S.sel=S.sel.filter(x=>x!==n); if(S.me===n) S.me=''; save(); render(); }
+function openProfile(n){ S.pv=n; S.phase='profile'; save(); render(); }
 
 function renderPlay(){
   const G=S.G, cr=G.game==='cricket';
@@ -424,7 +479,7 @@ function x01Board(){
   const G=S.G;
   return `<div class="board">${G.P.map((p,i)=>{ const act=i===G.cur&&!G.winner, rem=liveRem(G,i), co=G.doubleOut?checkout(rem, act?3-(G.turn||[]).length:3):null, avg=p.darts?(p.scored/p.darts*3).toFixed(1):'–';
     return `<div class="pl ${act?'act':''}">${act?'<span class="turnarrow">KASTER</span>':''}
-      <div class="nm">${esc(p.name)} ${G.legsToWin>1||(G.setsToWin||1)>1?legsDots(p):''}</div>
+      <div class="nm">${emo(p.name)} ${esc(p.name)} ${G.legsToWin>1||(G.setsToWin||1)>1?legsDots(p):''}</div>
       <div class="rem">${rem}</div>
       <div class="stats"><span>Snit <b>${avg}</b></span><span>Pile <b>${p.darts}</b></span><span>Sidst <b>${p.hist[0]??'–'}</b></span></div>
       ${co?`<div class="co">🎯 ${co.join(' · ')}</div>`:''}
@@ -481,19 +536,23 @@ function aggregate(f){
   return {ms,rows};
 }
 const f1=v=>v?v.toFixed(1):'–', f2=v=>v?v.toFixed(2):'–';
+function histHTML(ms){
+  return ms.slice().reverse().map(m=>{ const d=new Date(m.ts); const res=m.players.map(r=>`<span class="${r.name===m.winner?'w':''}">${emo(r.name)} ${esc(r.name)} <b>${m.sets>1?r.sets:r.legsWon}</b>${m.game==='cricket'?(r.mpr!=null?` <small>MPR ${f2(r.mpr)}</small>`:''):(r.avg!=null?` <small>snit ${f1(r.avg)}</small>`:'')}</span>`).join(' – ');
+    return `<div class="hrow"><span class="hd">${d.toLocaleDateString('da-DK',{day:'numeric',month:'short'})} ${d.toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</span><span class="hg">${m.game==='cricket'?'Cricket':m.game}${m.sets>1?` · ${m.sets} sæt`:` · ${m.legs} leg${m.legs>1?'s':''}`}</span><span class="hr">${res}</span><button class="x" title="Slet" onclick="delMatch(${m.id})">✕</button></div>`; }).join('');
+}
 function renderStats(){
   const f=S.sf||'x01'; const {ms,rows}=aggregate(f); const cr=f==='cricket';
   const best=(key,fmt,lbl,icon)=>{ const r=rows.filter(r=>r[key]).sort((a,b)=>b[key]-a[key])[0]; return `<div class="tile"><div class="ti">${icon} ${lbl}</div><div class="tv">${r?fmt(r[key]):'–'}</div><div class="tn">${r?esc(r.name):'Ingen endnu'}</div></div>`; };
   const tiles = cr ? best('mpr',f2,'Bedste MPR','🎯')+best('bestMpr',f2,'Bedste MPR i én kamp','🔥')+best('w',v=>v,'Flest sejre','🏆')+best('mt',v=>v,'Flest kampe','🎮')
                    : best('avg',f1,'Bedste snit','🎯')+best('n180',v=>v,'Flest 180','💯')+best('coBest',v=>v,'Højeste checkout','✅')+best('high',v=>v,'Højeste tur','🔥');
   const head = cr ? ['Spiller','Kampe','Sejre','Sejr %','MPR','Bedste MPR','Legs'] : ['Spiller','Kampe','Sejre','Sejr %','Snit','Bedste snit','Højeste','180','140+','100+','Højeste ud','Ud %','Legs'];
-  const body = rows.map((r,i)=>`<tr class="${i===0?'lead':''}"><td class="pos">${i+1}</td><td class="n">${esc(r.name)}</td><td>${r.mt}</td><td>${r.w}</td><td>${Math.round(r.pct)}%</td>${cr
+  const body = rows.map((r,i)=>`<tr class="${i===0?'lead':''}"><td class="pos">${i+1}</td><td class="n"><a class="plink" onclick="openProfile(decodeURIComponent('${encodeURIComponent(r.name)}'))">${emo(r.name)} ${esc(r.name)}</a></td><td>${r.mt}</td><td>${r.w}</td><td>${Math.round(r.pct)}%</td>${cr
       ? `<td><b>${f2(r.mpr)}</b></td><td>${f2(r.bestMpr)}</td><td>${r.legs}</td>`
       : `<td><b>${f1(r.avg)}</b></td><td>${f1(r.bestAvg)}</td><td>${r.high||'–'}</td><td>${r.n180}</td><td>${r.n140}</td><td>${r.n100}</td><td>${r.coBest||'–'}</td><td>${r.co==null?'–':Math.round(r.co)+'%'}</td><td>${r.legs}</td>`}</tr>`).join('');
-  const hist = ms.slice().reverse().map(m=>{ const d=new Date(m.ts); const res=m.players.map(r=>`<span class="${r.name===m.winner?'w':''}">${esc(r.name)} <b>${m.sets>1?r.sets:r.legsWon}</b>${m.game==='cricket'?(r.mpr!=null?` <small>MPR ${f2(r.mpr)}</small>`:''):(r.avg!=null?` <small>snit ${f1(r.avg)}</small>`:'')}</span>`).join(' – ');
-    return `<div class="hrow"><span class="hd">${d.toLocaleDateString('da-DK',{day:'numeric',month:'short'})} ${d.toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</span><span class="hg">${m.game==='cricket'?'Cricket':m.game}${m.sets>1?` · ${m.sets} sæt`:` · ${m.legs} leg${m.legs>1?'s':''}`}</span><span class="hr">${res}</span><button class="x" title="Slet" onclick="delMatch(${m.id})">✕</button></div>`; }).join('');
+  const hist = histHTML(ms);
   document.getElementById('app').innerHTML=`<div class="wrap">
     <div class="top"><h1><span class="gold">📊 Statistik</span></h1><div class="row">
+      ${S.me&&prof(S.me)?`<button class="btn" onclick="openProfile(S.me)">${emo(S.me)} Min statistik</button>`:''}
       <button class="btn" onclick="fs()">⛶</button>
       <button class="btn" onclick="S.phase=S.G&&!S.G.winner?'play':'setup';save();render()">← Tilbage</button></div></div>
     <div class="row" style="margin-bottom:14px">${[['x01','501 + 301'],['501','501'],['301','301'],['cricket','Cricket']].map(([k,l])=>`<button class="btn ${f===k?'on':''}" onclick="S.sf='${k}';save();render()">${l}</button>`).join('')}</div>
@@ -503,6 +562,45 @@ function renderStats(){
     <div class="card" style="margin-top:16px"><div class="lbl">Kamphistorik (${ms.length})</div>${hist}</div>`
     :`<div class="card muted" style="text-align:center;padding:40px;font-size:20px">Ingen færdigspillede kampe endnu i ${f==='x01'?'501/301':f==='cricket'?'Cricket':f}. Spil en kamp færdig, så dukker den op her 🎯</div>`}
     ${STATS.length?`<div style="text-align:right;margin-top:16px"><button class="btn ghost" onclick="clearStats()">🗑 Slet al statistik</button></div>`:''}
+  </div>`;
+}
+function formChart(vals,fmt){
+  if(vals.length<2) return '<div class="muted" style="padding:20px 0">Spil mindst 2 kampe for at se formkurven</div>';
+  const W=800,H=220,P=34, mn=Math.min(...vals), mx=Math.max(...vals), span=(mx-mn)||1;
+  const x=i=>P+i*(W-2*P)/(vals.length-1), y=v=>H-P-(v-mn)/span*(H-2*P);
+  const pts=vals.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Formkurve">
+    <line x1="${P}" x2="${W-P}" y1="${y(avg)}" y2="${y(avg)}" stroke="rgba(255,255,255,.25)" stroke-dasharray="6 6"/>
+    <text x="${W-P}" y="${y(avg)-6}" text-anchor="end" fill="#ab9fcc" font-size="14">gns. ${fmt(avg)}</text>
+    <polyline points="${pts}" fill="none" stroke="#ffcf4a" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+    ${vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="6" fill="#ffcf4a"><title>${fmt(v)}</title></circle>`).join('')}
+    <text x="${P}" y="${y(mx)-12}" fill="#f7f2ff" font-size="15" font-weight="700">${fmt(mx)}</text>
+    <text x="${P}" y="${H-8}" fill="#ab9fcc" font-size="14">ældst</text><text x="${W-P}" y="${H-8}" fill="#ab9fcc" font-size="14" text-anchor="end">nyest</text></svg>`;
+}
+function renderProfile(){
+  const n=S.pv, f=S.sf||'x01', cr=f==='cricket';
+  const {ms,rows}=aggregate(f); const r=rows.find(x=>x.name===n);
+  const mine=ms.filter(m=>m.players.some(p=>p.name===n));
+  const vals=mine.slice(-20).map(m=>{ const p=m.players.find(p=>p.name===n); return cr?p.mpr:p.avg; }).filter(v=>v!=null);
+  const tile=(lbl,val)=>`<div class="tile"><div class="ti">${lbl}</div><div class="tv">${val}</div></div>`;
+  const tiles = !r ? '' : (cr
+    ? tile('Kampe',r.mt)+tile('Sejre',`${r.w} <small>${Math.round(r.pct)}%</small>`)+tile('MPR',f2(r.mpr))+tile('Bedste MPR',f2(r.bestMpr))
+    : tile('Kampe',r.mt)+tile('Sejre',`${r.w} <small>${Math.round(r.pct)}%</small>`)+tile('Snit',f1(r.avg))+tile('Bedste snit',f1(r.bestAvg))
+      +tile('180’ere',r.n180)+tile('Højeste checkout',r.coBest||'–')+tile('Højeste tur',r.high||'–')+tile('Checkout %',r.co==null?'–':Math.round(r.co)+'%'));
+  // indbyrdes
+  const H={};
+  mine.forEach(m=>m.players.forEach(o=>{ if(o.name===n) return; const h=H[o.name]||(H[o.name]={name:o.name,mt:0,w:0,l:0}); h.mt++; if(m.winner===n) h.w++; else if(m.winner===o.name) h.l++; }));
+  const h2h=Object.values(H).sort((a,b)=>b.mt-a.mt).map(h=>`<div class="h2h"><span>${emo(h.name)} ${esc(h.name)}</span><span class="muted">${h.mt} kamp${h.mt>1?'e':''}</span><span class="rec"><b class="win">${h.w}</b> – <b class="los">${h.l}</b></span></div>`).join('');
+  document.getElementById('app').innerHTML=`<div class="wrap">
+    <div class="top"><h1 style="font-size:44px">${emo(n)} <span class="gold">${esc(n)}</span>${S.me===n?' <span class="muted" style="font-size:20px">(dig)</span>':''}</h1><div class="row">
+      <button class="btn" onclick="fs()">⛶</button><button class="btn" onclick="S.phase='stats';save();render()">← Statistik</button></div></div>
+    <div class="row" style="margin-bottom:14px">${[['x01','501 + 301'],['501','501'],['301','301'],['cricket','Cricket']].map(([k,l])=>`<button class="btn ${f===k?'on':''}" onclick="S.sf='${k}';save();render()">${l}</button>`).join('')}</div>
+    ${r?`<div class="tiles">${tiles}</div>
+      <div class="pgrid"><div class="card"><div class="lbl">Form – ${cr?'MPR':'snit'} de sidste ${vals.length} kampe</div>${formChart(vals,cr?f2:f1)}</div>
+      <div class="card"><div class="lbl">Indbyrdes (sejre – nederlag)</div>${h2h||'<div class="muted">Kun solo-kampe endnu</div>'}</div></div>
+      <div class="card" style="margin-top:16px"><div class="lbl">Kampe (${mine.length})</div>${histHTML(mine)}</div>`
+    :`<div class="card muted" style="text-align:center;padding:40px;font-size:20px">${esc(n)} har ingen færdige kampe i ${f==='x01'?'501/301':f==='cricket'?'Cricket':f} endnu 🎯</div>`}
   </div>`;
 }
 if(window.speechSynthesis) speechSynthesis.onvoiceschanged=()=>{};
