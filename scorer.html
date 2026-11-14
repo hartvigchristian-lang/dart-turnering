@@ -112,6 +112,25 @@ table.cr{width:100%;border-collapse:separate;border-spacing:0 6px}
 .dts i{width:14px;height:14px;border-radius:50%;border:2px solid var(--gold)}
 .dts i.u{background:var(--gold)}
 
+/* statistik */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:800px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.tile .ti{color:var(--muted);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.06em}
+.tile .tv{font-family:'Barlow Condensed',system-ui,sans-serif;font-size:56px;font-weight:800;color:var(--gold);line-height:1.05}
+.tile .tn{font-weight:700;font-size:18px}
+table.stt{width:100%;border-collapse:collapse;font-size:18px;white-space:nowrap}
+.stt th{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:8px;border-bottom:1px solid var(--line);text-align:center}
+.stt th:nth-child(2){text-align:left}
+.stt td{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.stt td.n{text-align:left;font-weight:800;font-size:20px}
+.stt td.pos{color:var(--muted);width:30px}
+.stt tr.lead td{color:var(--gold)}
+.hrow{display:grid;grid-template-columns:110px 120px 1fr 32px;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)}
+@media(max-width:700px){.hrow{grid-template-columns:1fr 32px}.hrow .hd,.hrow .hg{grid-column:1}}
+.hrow .hd{color:var(--muted);font-size:14px}.hrow .hg{font-weight:700;color:var(--cyan)}
+.hrow .hr .w{color:var(--gold);font-weight:800}.hrow small{color:var(--muted)}
+.hrow .x{background:none;border:0;color:var(--muted);font-size:16px}
 /* overlay */
 #ov{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle,rgba(255,77,109,.6),rgba(15,10,34,.95) 70%);opacity:0;pointer-events:none;transition:opacity .3s;text-align:center;padding:20px}
 #ov.show{opacity:1;pointer-events:auto}
@@ -166,9 +185,27 @@ function checkout(r,n=3){
   return coCache[ck]=res;
 }
 
+/* ---------- Statistik ---------- */
+const SKEY='dart-scorer-stats-v1';
+function loadStats(){ try{ const a=JSON.parse(localStorage.getItem(SKEY)); if(Array.isArray(a)) return a; }catch(e){} return []; }
+function saveStats(){ try{ localStorage.setItem(SKEY,JSON.stringify(STATS)); }catch(e){} }
+let STATS=loadStats();
+function st(p){ return p.st||(p.st={turns:0,high:0,n180:0,n140:0,n100:0,coBest:0,coAtt:0,coHit:0,legsWon:0,marks:0,crTurns:0}); }
+function recTurn(p,sum){ const s=st(p); s.turns++; if(sum>s.high) s.high=sum; if(sum===180) s.n180++; else if(sum>=140) s.n140++; else if(sum>=100) s.n100++; }
+function recordMatch(){
+  const G=S.G; const id=Date.now(); G.savedId=id;
+  STATS.push({id, ts:id, game:G.game, sets:G.setsToWin||1, legs:G.legsToWin, doubleOut:G.doubleOut, winner:G.winner,
+    players:G.P.map(p=>{ const s=st(p); return {name:p.name, sets:p.sets||0, legsWon:s.legsWon, darts:p.darts, scored:p.scored||0,
+      avg:p.darts&&G.game!=='cricket'?+(p.scored/p.darts*3).toFixed(2):null, high:s.high, n180:s.n180, n140:s.n140, n100:s.n100,
+      coBest:s.coBest, coAtt:s.coAtt, coHit:s.coHit, marks:s.marks, crTurns:s.crTurns, mpr:s.crTurns?+(s.marks/s.crTurns).toFixed(2):null}; })});
+  saveStats();
+}
+function delMatch(id){ if(!confirm('Slet denne kamp fra statistikken?')) return; STATS=STATS.filter(m=>m.id!==id); saveStats(); render(); }
+function clearStats(){ if(!confirm('Slet AL statistik? Det kan ikke fortrydes.')) return; STATS=[]; saveStats(); render(); }
+
 /* ---------- Spil-logik ---------- */
 function snap(){ S.H.push(JSON.stringify(S.G)); if(S.H.length>200) S.H.shift(); }
-function undo(){ if(!S.H.length) return; S.G=JSON.parse(S.H.pop()); entry=''; save(); render(); toast('Fortrudt'); }
+function undo(){ if(!S.H.length) return; if(S.G&&S.G.winner&&S.G.savedId){ STATS=STATS.filter(m=>m.id!==S.G.savedId); saveStats(); } S.G=JSON.parse(S.H.pop()); entry=''; save(); render(); toast('Fortrudt'); }
 function startGame(){
   const names=S.sel.slice(); if(!names.length) return toast('Vælg mindst én spiller');
   const x01=S.game!=='cricket';
@@ -182,11 +219,11 @@ function newLeg(){
   G.P.forEach(p=>{ if(G.game==='cricket'){ p.marks=Object.fromEntries(CR.map(c=>[c,0])); p.pts=0; } else p.rem=+G.game; p.hist=[]; });
 }
 function legWon(p){
-  const G=S.G, ST=G.setsToWin||1; p.legs++; p.sets=p.sets||0;
+  const G=S.G, ST=G.setsToWin||1; p.legs++; p.sets=p.sets||0; st(p).legsWon++;
   const res=()=>G.P.map(x=>x.name+' '+(ST>1?x.sets:x.legs)).join(' – ');
   if(p.legs>=G.legsToWin){
     p.sets++;
-    if(p.sets>=ST){ G.winner=p.name; showOv('🏆',`${p.name} VINDER!`,`${G.game==='cricket'?'Cricket':G.game} · ${ST>1?'sæt ':''}${res()}`,0); say(`Game shot, and the match! ${p.name} vinder!`); return; }
+    if(p.sets>=ST){ G.winner=p.name; recordMatch(); showOv('🏆',`${p.name} VINDER!`,`${G.game==='cricket'?'Cricket':G.game} · ${ST>1?'sæt ':''}${res()}`,0); say(`Game shot, and the match! ${p.name} vinder!`); return; }
     showOv('🔥','SÆT TIL '+p.name.toUpperCase()+'!',`Sæt ${G.set} · stilling i sæt: ${res()}`,4000); say(`Game shot, and the set! ${p.name} vinder sættet.`);
     G.set++; G.P.forEach(x=>x.legs=0); G.leg=0; newLeg();
   }
@@ -202,9 +239,9 @@ function submitScore(n){
   const left=p.rem-n;
   const bust = left<0 || (G.doubleOut && left===1);
   p.darts+=3;
-  if(bust){ p.hist.unshift('BUST'); say(`Bust! ${p.name} mangler stadig ${p.rem}`); toast('BUST!'); nextPlayer(); }
+  if(bust){ st(p).turns++; p.hist.unshift('BUST'); say(`Bust! ${p.name} mangler stadig ${p.rem}`); toast('BUST!'); nextPlayer(); }
   else {
-    p.rem=left; p.scored+=n; p.hist.unshift(n);
+    p.rem=left; p.scored+=n; p.hist.unshift(n); recTurn(p,n); if(left===0&&n>st(p).coBest) st(p).coBest=n;
     if(n===180) showOv('180','ONE HUNDRED AND EIGHTY!',p.name,3500);
     if(left===0){ save(); legWon(p); save(); render(); return; }
     say(n===180?'One hundred and eighty!':`${n}`+(left<=170&&checkout(left)&&G.doubleOut?`. ${p.name}, du mangler ${left}`:''));
@@ -223,11 +260,13 @@ function addDart(m,n){
   const p=G.P[G.cur];
   const v = n===25 ? (m===2?50:25) : n*m;
   const l = n===0 ? 'Miss' : n===25 ? (m===2?'Bull':'25') : (m===3?'T':m===2?'D':'')+n;
+  const before=p.rem-turnSum(G);
+  if(G.doubleOut && (before===50 || (before>=2&&before<=40&&before%2===0))) st(p).coAtt++;
   G.turn.push({l,v,dbl:m===2});
   const sum=turnSum(G), left=p.rem-sum;
   const bust = left<0 || (G.doubleOut && left===1) || (left===0 && G.doubleOut && m!==2);
-  if(bust){ p.darts+=G.turn.length; p.hist.unshift('BUST'); p.hist=p.hist.slice(0,6); toast('BUST!'); say(`Bust! ${p.name} mangler stadig ${p.rem}`); nextPlayer(); save(); render(); return; }
-  if(left===0){ p.darts+=G.turn.length; p.scored+=sum; p.rem=0; p.hist.unshift(sum); p.hist=p.hist.slice(0,6); G.turn=[]; save(); legWon(p); save(); render(); return; }
+  if(bust){ st(p).turns++; p.darts+=G.turn.length; p.hist.unshift('BUST'); p.hist=p.hist.slice(0,6); toast('BUST!'); say(`Bust! ${p.name} mangler stadig ${p.rem}`); nextPlayer(); save(); render(); return; }
+  if(left===0){ recTurn(p,sum); if(sum>st(p).coBest) st(p).coBest=sum; if(G.doubleOut) st(p).coHit++; p.darts+=G.turn.length; p.scored+=sum; p.rem=0; p.hist.unshift(sum); p.hist=p.hist.slice(0,6); G.turn=[]; save(); legWon(p); save(); render(); return; }
   if(G.turn.length>=3){ commitTurn(true); return; }
   save(); render();
 }
@@ -236,7 +275,7 @@ function commitTurn(auto){
   const p=G.P[G.cur];
   if(!G.turn||!G.turn.length){ if(auto) return; snap(); }
   const sum=turnSum(G), n=(G.turn||[]).length;
-  p.rem-=sum; p.scored+=sum; p.darts+=3; p.hist.unshift(sum); p.hist=p.hist.slice(0,6);
+  p.rem-=sum; p.scored+=sum; p.darts+=3; recTurn(p,sum); p.hist.unshift(sum); p.hist=p.hist.slice(0,6);
   if(sum===180) showOv('180','ONE HUNDRED AND EIGHTY!',p.name,3500);
   say(sum===180?'One hundred and eighty!':`${sum}`+(p.rem<=170&&G.doubleOut&&checkout(p.rem)?`. ${p.name}, du mangler ${p.rem}`:''));
   nextPlayer(); save(); render();
@@ -250,9 +289,9 @@ let mult=1;
 function crDart(n,m){
   const G=S.G; if(!G||G.winner||G.game!=='cricket') return;
   if(G.darts===0) snap();
-  const p=G.P[G.cur]; p.darts++; G.darts++;
+  const p=G.P[G.cur]; if(G.darts===0) st(p).crTurns++; p.darts++; G.darts++;
   if(n){
-    if(n===25&&m===3) m=2;
+    if(n===25&&m===3) m=2; st(p).marks+=m;
     const add=Math.min(3-p.marks[n],m), extra=m-add; p.marks[n]+=add;
     if(extra>0 && G.P.some(o=>o!==p&&o.marks[n]<3)) p.pts+=extra*n;
     p.hist.unshift((m===3?'T':m===2?'D':'')+(n===25?'Bull':n));
@@ -262,7 +301,7 @@ function crDart(n,m){
   if(G.darts>=3) nextPlayer();
   save(); render();
 }
-function crEndTurn(){ const G=S.G; if(!G||G.game!=='cricket') return; if(G.darts===0) snap(); nextPlayer(); save(); render(); }
+function crEndTurn(){ const G=S.G; if(!G||G.game!=='cricket') return; if(G.darts===0){ snap(); st(G.P[G.cur]).crTurns++; } nextPlayer(); save(); render(); }
 function parseCricket(txt){
   const t=' '+txt.toLowerCase().replace(/[^a-zæøå0-9 ]/g,' ')+' ';
   const toks=t.split(/\s+/).filter(Boolean); const darts=[]; let m=1;
@@ -344,7 +383,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------- Render ---------- */
-function render(){ S.phase==='setup'?renderSetup():renderPlay(); }
+function render(){ S.phase==='stats'?renderStats():S.phase==='setup'?renderSetup():renderPlay(); }
 function renderSetup(){
   const all=[...PRESET,...S.extra];
   document.getElementById('app').innerHTML=`<div class="wrap"><div class="setup">
@@ -360,6 +399,7 @@ function renderSetup(){
     </div></div>
     <button class="btn pri" style="padding:18px;font-size:24px" onclick="startGame()">Start ${S.game==='cricket'?'Cricket':S.game} ▶</button>
     ${S.G&&!S.G.winner?`<button class="btn ghost" onclick="S.phase='play';save();render()">↩ Fortsæt igangværende kamp</button>`:''}
+    <button class="btn" style="padding:14px;font-size:18px" onclick="S.phase='stats';save();render()">📊 Statistik${STATS.length?` · ${STATS.length} kampe`:''}</button>
   </div></div>`;
 }
 function togglePl(n){ const i=S.sel.indexOf(n); if(i>=0) S.sel.splice(i,1); else S.sel.push(n); save(); render(); }
@@ -373,6 +413,7 @@ function renderPlay(){
         <button class="btn ${S.voice?'on':''}" onclick="toggleVoice()">🎤 ${S.voice?'Lytter':'Stemme'}</button>
         <button class="btn ${S.caller?'on':''}" onclick="S.caller=!S.caller;save();render()">🔊 Kalder</button>
         <button class="btn" onclick="undo()">↺ Fortryd</button>
+        <button class="btn" onclick="S.phase='stats';save();render()">📊</button>
         <button class="btn" onclick="fs()">⛶</button>
         <button class="btn" onclick="if(confirm('Afslut kampen og gå til opsætning?')){S.phase='setup';save();render();}">Ny kamp</button>
       </div></div>
@@ -425,6 +466,44 @@ function crInput(){
     <div class="mult">${[[1,'Single'],[2,'Double'],[3,'Triple']].map(([m,l])=>`<button class="${mult===m?'sel':''}" onclick="mult=${m};render()">${l}</button>`).join('')}</div>
     <div class="crk">${[20,19,18,17,16,15].map(n=>`<button onclick="crDart(${n},mult)">${n}</button>`).join('')}<button onclick="crDart(25,mult)">Bull</button><button class="miss" onclick="crDart(0,1)">Miss</button></div>
     <button class="btn" style="padding:14px;font-size:18px" onclick="crEndTurn()">Afslut tur ▶</button>`;
+}
+function aggregate(f){
+  const ms=STATS.filter(m=> f==='x01'?m.game!=='cricket' : m.game===f);
+  const A={};
+  ms.forEach(m=>m.players.forEach(r=>{
+    const a=A[r.name]||(A[r.name]={name:r.name,mt:0,w:0,darts:0,scored:0,bestAvg:0,high:0,n180:0,n140:0,n100:0,coBest:0,coAtt:0,coHit:0,legs:0,marks:0,crTurns:0,bestMpr:0});
+    a.mt++; if(m.winner===r.name&&m.players.length>1) a.w++; a.darts+=r.darts; a.scored+=r.scored; a.legs+=r.legsWon||0;
+    if(r.avg>a.bestAvg) a.bestAvg=r.avg; if(r.high>a.high) a.high=r.high; a.n180+=r.n180; a.n140+=r.n140; a.n100+=r.n100;
+    if(r.coBest>a.coBest) a.coBest=r.coBest; a.coAtt+=r.coAtt; a.coHit+=r.coHit; a.marks+=r.marks; a.crTurns+=r.crTurns; if(r.mpr>a.bestMpr) a.bestMpr=r.mpr;
+  }));
+  const rows=Object.values(A).map(a=>({...a, avg:a.darts?a.scored/a.darts*3:0, pct:a.mt?a.w/a.mt*100:0, mpr:a.crTurns?a.marks/a.crTurns:0, co:a.coAtt?a.coHit/a.coAtt*100:null}));
+  rows.sort((x,y)=> y.w-x.w || y.pct-x.pct || (f==='cricket'? y.mpr-x.mpr : y.avg-x.avg));
+  return {ms,rows};
+}
+const f1=v=>v?v.toFixed(1):'–', f2=v=>v?v.toFixed(2):'–';
+function renderStats(){
+  const f=S.sf||'x01'; const {ms,rows}=aggregate(f); const cr=f==='cricket';
+  const best=(key,fmt,lbl,icon)=>{ const r=rows.filter(r=>r[key]).sort((a,b)=>b[key]-a[key])[0]; return `<div class="tile"><div class="ti">${icon} ${lbl}</div><div class="tv">${r?fmt(r[key]):'–'}</div><div class="tn">${r?esc(r.name):'Ingen endnu'}</div></div>`; };
+  const tiles = cr ? best('mpr',f2,'Bedste MPR','🎯')+best('bestMpr',f2,'Bedste MPR i én kamp','🔥')+best('w',v=>v,'Flest sejre','🏆')+best('mt',v=>v,'Flest kampe','🎮')
+                   : best('avg',f1,'Bedste snit','🎯')+best('n180',v=>v,'Flest 180','💯')+best('coBest',v=>v,'Højeste checkout','✅')+best('high',v=>v,'Højeste tur','🔥');
+  const head = cr ? ['Spiller','Kampe','Sejre','Sejr %','MPR','Bedste MPR','Legs'] : ['Spiller','Kampe','Sejre','Sejr %','Snit','Bedste snit','Højeste','180','140+','100+','Højeste ud','Ud %','Legs'];
+  const body = rows.map((r,i)=>`<tr class="${i===0?'lead':''}"><td class="pos">${i+1}</td><td class="n">${esc(r.name)}</td><td>${r.mt}</td><td>${r.w}</td><td>${Math.round(r.pct)}%</td>${cr
+      ? `<td><b>${f2(r.mpr)}</b></td><td>${f2(r.bestMpr)}</td><td>${r.legs}</td>`
+      : `<td><b>${f1(r.avg)}</b></td><td>${f1(r.bestAvg)}</td><td>${r.high||'–'}</td><td>${r.n180}</td><td>${r.n140}</td><td>${r.n100}</td><td>${r.coBest||'–'}</td><td>${r.co==null?'–':Math.round(r.co)+'%'}</td><td>${r.legs}</td>`}</tr>`).join('');
+  const hist = ms.slice().reverse().map(m=>{ const d=new Date(m.ts); const res=m.players.map(r=>`<span class="${r.name===m.winner?'w':''}">${esc(r.name)} <b>${m.sets>1?r.sets:r.legsWon}</b>${m.game==='cricket'?(r.mpr!=null?` <small>MPR ${f2(r.mpr)}</small>`:''):(r.avg!=null?` <small>snit ${f1(r.avg)}</small>`:'')}</span>`).join(' – ');
+    return `<div class="hrow"><span class="hd">${d.toLocaleDateString('da-DK',{day:'numeric',month:'short'})} ${d.toLocaleTimeString('da-DK',{hour:'2-digit',minute:'2-digit'})}</span><span class="hg">${m.game==='cricket'?'Cricket':m.game}${m.sets>1?` · ${m.sets} sæt`:` · ${m.legs} leg${m.legs>1?'s':''}`}</span><span class="hr">${res}</span><button class="x" title="Slet" onclick="delMatch(${m.id})">✕</button></div>`; }).join('');
+  document.getElementById('app').innerHTML=`<div class="wrap">
+    <div class="top"><h1><span class="gold">📊 Statistik</span></h1><div class="row">
+      <button class="btn" onclick="fs()">⛶</button>
+      <button class="btn" onclick="S.phase=S.G&&!S.G.winner?'play':'setup';save();render()">← Tilbage</button></div></div>
+    <div class="row" style="margin-bottom:14px">${[['x01','501 + 301'],['501','501'],['301','301'],['cricket','Cricket']].map(([k,l])=>`<button class="btn ${f===k?'on':''}" onclick="S.sf='${k}';save();render()">${l}</button>`).join('')}</div>
+    ${rows.length?`<div class="tiles">${tiles}</div>
+    <div class="card" style="overflow-x:auto"><table class="stt"><thead><tr><th></th>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
+      ${cr?'':'<div class="muted" style="margin-top:8px;font-size:14px">Ud % tælles kun når der tastes pil for pil (🎯 Felter). Snit = 3-pils gennemsnit.</div>'}</div>
+    <div class="card" style="margin-top:16px"><div class="lbl">Kamphistorik (${ms.length})</div>${hist}</div>`
+    :`<div class="card muted" style="text-align:center;padding:40px;font-size:20px">Ingen færdigspillede kampe endnu i ${f==='x01'?'501/301':f==='cricket'?'Cricket':f}. Spil en kamp færdig, så dukker den op her 🎯</div>`}
+    ${STATS.length?`<div style="text-align:right;margin-top:16px"><button class="btn ghost" onclick="clearStats()">🗑 Slet al statistik</button></div>`:''}
+  </div>`;
 }
 if(window.speechSynthesis) speechSynthesis.onvoiceschanged=()=>{};
 render();
