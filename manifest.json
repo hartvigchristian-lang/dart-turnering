@@ -1,6 +1,6 @@
 {
-  "name": "Dart Scorer",
-  "short_name": "Dart",
+  "name": "Hartvig Dart Score",
+  "short_name": "Hartvig Dart",
   "start_url": "scorer.html",
   "scope": "./",
   "display": "standalone",

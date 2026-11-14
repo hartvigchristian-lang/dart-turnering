@@ -9,7 +9,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Dart Scorer</title>
+<title>Hartvig Dart Score</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0f0a22;--panel:rgba(28,20,58,.86);--panel2:rgba(55,38,104,.7);--line:rgba(255,255,255,.1);--text:#f7f2ff;--muted:#ab9fcc;--red:#ff4d6d;--green:#22c993;--gold:#ffcf4a;--pink:#ff5fa2;--cyan:#38d9f0}
@@ -428,7 +428,7 @@ function render(){ S.phase==='profile'?renderProfile():S.phase==='stats'?renderS
 function renderSetup(){
   const all=[...PRESET,...S.extra];
   document.getElementById('app').innerHTML=`<div class="wrap"><div class="setup">
-    <div style="text-align:center"><h1 class="gold" style="font-size:46px">🎯 Dart Scorer</h1><div class="muted">Sig din score – eller tast den ind</div></div>
+    <div style="text-align:center"><h1 class="gold" style="font-size:46px">🎯 Hartvig Dart Score</h1><div class="muted">Sig din score – eller tast den ind</div></div>
     <div class="card"><div class="lbl">Spil</div><div class="games">${['501','301','cricket'].map(g=>`<button class="${S.game===g?'sel':''}" onclick="S.game='${g}';save();render()">${g==='cricket'?'Cricket':g}</button>`).join('')}</div></div>
     <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:8px"><div class="lbl" style="margin:0">${S.editProf?'Profiler på denne enhed':'Spillere (tryk i den rækkefølge de skal kaste)'}</div><button class="btn" style="padding:6px 12px" onclick="S.editProf=!S.editProf;save();render()">${S.editProf?'✓ Færdig':'✏️ Profiler'}</button></div>
       ${S.editProf ? `<div class="profs">${S.profiles.map((p,i)=>`<div class="prow"><button class="em" title="Skift emoji" onclick="cycleEmoji(${i})">${p.emoji}</button><input class="txt" value="${esc(p.name)}" onchange="renameProf(${i},this.value)"><button class="btn ghost" title="Slet profil" onclick="delProf(${i})">🗑</button></div>`).join('')}</div>`
